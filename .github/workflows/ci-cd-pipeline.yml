@@ -3,22 +3,18 @@ name: Docker Build and Push
 on:
   push:
     branches:
-      - main
+      - main  # Trigger this workflow when you push to the main branch
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-22.04  # Or any available runner you prefer
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Log in to Docker Hub
-        run: |
-          echo ${{ secrets.DOCKER_TOKEN }} | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
+        uses: actions/checkout@v2  # Checks out your code from GitHub
 
       - name: Build Docker image
-        run: docker build -t myapp .
+        run: docker build -t myapp .  # Builds the Docker image with the tag 'myapp'
 
-      - name: Push Docker image
-        run: docker push myapp
+      - name: Push Docker image to Docker Hub
+        run: docker push myapp  # Pushes the image to the public Docker repository
