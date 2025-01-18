@@ -57,9 +57,11 @@ jobs:
         with:
           kubectl-version: 'latest'
 
-      # Set up Kubeconfig (from secret or external source)
+      # Create .kube directory and set up Kubeconfig
       - name: Set up Kubeconfig
-        run: echo "${{ secrets.KUBE_CONFIG }}" > $HOME/.kube/config
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBE_CONFIG }}" > $HOME/.kube/config
 
       # Deploy to Kubernetes using kubectl
       - name: Deploy to Kubernetes
