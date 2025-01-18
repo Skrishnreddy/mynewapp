@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mynewapp-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: mynewapp
+  template:
+    metadata:
+      labels:
+        app: mynewapp
+    spec:
+      containers:
+      - name: mynewapp
+        image: mynewapp:latest
+        ports:
+        - containerPort: 8080
