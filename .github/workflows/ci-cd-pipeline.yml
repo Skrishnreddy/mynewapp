@@ -1,20 +1,33 @@
-name: Docker Build and Push
+name: Docker Build
 
 on:
   push:
     branches:
-      - main  # Trigger this workflow when you push to the main branch
+      - main  # Trigger on push to the main branch
 
 jobs:
   build:
-    runs-on: ubuntu-22.04  # Or any available runner you prefer
+    runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2  # Checks out your code from GitHub
+    - name: Check out code
+      uses: actions/checkout@v2
 
-      - name: Build Docker image
-        run: docker build -t myapp .  # Builds the Docker image with the tag 'myapp'
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
 
-      - name: Push Docker image to Docker Hub
-        run: docker push myapp  # Pushes the image to the public Docker repository
+    - name: Cache Docker layers
+      uses: actions/cache@v2
+      with:
+        path: /tmp/.buildx-cache
+        key: ${{ runner.os }}-buildx-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-buildx-
+
+    - name: Build Docker image
+      run: |
+        docker build -t mynewapp .
+    
+    - name: Verify Docker image build
+      run: |
+        docker images
