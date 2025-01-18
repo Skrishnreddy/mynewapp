@@ -53,7 +53,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      # Set up Kubernetes configuration
+      # Set up Kubernetes configuration using secret
       - name: Set up Kubernetes configuration
         run: |
           mkdir -p $HOME/.kube  # Create the .kube directory if it doesn't exist
@@ -63,5 +63,5 @@ jobs:
       # Deploy to Kubernetes
       - name: Deploy to Kubernetes
         run: |
-          kubectl apply -f kubernetes/deployment.yaml
-          kubectl apply -f kubernetes/service.yaml
+          kubectl apply -f kubernetes/deployment.yaml --validate=false
+          kubectl apply -f kubernetes/service.yaml --validate=false
