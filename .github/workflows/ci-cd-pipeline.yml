@@ -1,4 +1,4 @@
-name: Java CI/CD with Maven, Docker, and Kubernetes
+name: Java CI with Maven, Docker, and Kubernetes Deployment
 
 on:
   push:
@@ -9,9 +9,9 @@ on:
       - main
 
 jobs:
-  build:
+  # Continuous Integration (CI)
+  ci:
     runs-on: ubuntu-latest
-
     steps:
       # Checkout code
       - name: Checkout code
@@ -42,28 +42,33 @@ jobs:
       - name: Build Docker image
         run: docker build -t mynewapp .
 
-  deploy:
+  # Continuous Deployment (CD)
+  cd:
     runs-on: ubuntu-latest
-    needs: build
-
+    needs: ci  # CD job runs after CI job
     steps:
-      # Checkout code again in deploy job
+      # Checkout code
       - name: Checkout code
         uses: actions/checkout@v2
 
-      # Set up kubectl
-      - name: Set up kubectl
-        uses: azure/setup-kubectl@v1
-        with:
-          kubectl-version: 'latest'
-
-      # Create .kube directory and set up Kubeconfig
-      - name: Set up Kubeconfig
+      # Log in to AWS ECR (if necessary)
+      - name: AWS ECR login
         run: |
-          mkdir -p $HOME/.kube
-          echo "${{ secrets.KUBE_CONFIG }}" > $HOME/.kube/config
+          aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin 879381276096.dkr.ecr.us-west-2.amazonaws.com
 
-      # Deploy to Kubernetes using kubectl
+      # Push Docker image to AWS ECR (if necessary)
+      - name: Push Docker image to AWS ECR
+        run: |
+          docker tag mynewapp:latest 879381276096.dkr.ecr.us-west-2.amazonaws.com/mynewapp:latest
+          docker push 879381276096.dkr.ecr.us-west-2.amazonaws.com/mynewapp:latest
+
+      # Set up Kubernetes configuration (if required)
+      - name: Set up Kubernetes configuration
+        run: |
+          echo "$KUBECONFIG" > $HOME/.kube/config
+          mkdir -p $HOME/.kube && chmod 600 $HOME/.kube/config
+
+      # Deploy to Kubernetes
       - name: Deploy to Kubernetes
         run: |
           kubectl apply -f kubernetes/deployment.yaml
