@@ -1,0 +1,22 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:*",
+        "codebuild:*",
+        "codedeploy:*",
+        "ecr:*",
+        "cloudformation:*",
+        "iam:PassRole",
+        "sns:Publish",
+        "codecommit:CreateRepository",
+        "codecommit:GetRepository",
+        "codecommit:ListRepositories",
+        "codecommit:DeleteRepository"
+      ],
+      "Resource": "*"
+    }
+  ]
+}

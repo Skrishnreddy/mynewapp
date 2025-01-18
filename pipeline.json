@@ -1,0 +1,102 @@
+{
+  "pipeline": {
+    "name": "mynewapp-pipeline",
+    "roleArn": "arn:aws:iam::879381276096:role/service-role/AWSCodePipelineServiceRole",
+    "artifactStore": {
+      "type": "S3",
+      "location": "mynewapp-pipeline-artifacts"
+    },
+    "stages": [
+      {
+        "name": "Source",
+        "actions": [
+          {
+            "name": "Source",
+            "actionTypeId": {
+              "category": "Source",
+              "owner": "AWS",
+              "provider": "CodeCommit",
+              "version": "1"
+            },
+            "outputArtifacts": [
+              {
+                "name": "source_output"
+              }
+            ],
+            "configuration": {
+              "RepositoryName": "my-repo",
+              "BranchName": "main"
+            }
+          }
+        ]
+      },
+      {
+        "name": "Build",
+        "actions": [
+          {
+            "name": "Build",
+            "actionTypeId": {
+              "category": "Build",
+              "owner": "AWS",
+              "provider": "CodeBuild",
+              "version": "1"
+            },
+            "inputArtifacts": [
+              {
+                "name": "source_output"
+              }
+            ],
+            "outputArtifacts": [
+              {
+                "name": "build_output"
+              }
+            ],
+            "configuration": {
+              "ProjectName": "mynewapp-build-project"
+            }
+          }
+        ]
+      },
+      {
+        "name": "Deploy",
+        "actions": [
+          {
+            "name": "Deploy",
+            "actionTypeId": {
+              "category": "Deploy",
+              "owner": "AWS",
+              "provider": "CodeDeploy",
+              "version": "1"
+            },
+            "inputArtifacts": [
+              {
+                "name": "build_output"
+              }
+            ],
+            "configuration": {
+              "ApplicationName": "mynewapp",
+              "DeploymentGroupName": "mynewapp-deployment-group"
+            }
+          }
+        ]
+      },
+      {
+        "name": "Notify",
+        "actions": [
+          {
+            "name": "Notify",
+            "actionTypeId": {
+              "category": "Invoke",
+              "owner": "AWS",
+              "provider": "SNS",
+              "version": "1"
+            },
+            "configuration": {
+              "TopicArn": "arn:aws:sns:us-west-2:879381276096:codepipeline-notifications"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,39 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      java: 11
+    commands:
+      - echo Installing Maven...
+      - wget http://mirrors.ibiblio.org/apache/maven/maven-3.6.3/binaries/apache-maven-3.6.3-bin.tar.gz
+      - tar xzvf apache-maven-3.6.3-bin.tar.gz
+      - mv apache-maven-3.6.3 /usr/local/apache-maven
+  pre_build:
+    commands:
+      - echo Entering the pre_build phase...
+      - /usr/local/apache-maven/bin/mvn clean install
+      - /usr/local/apache-maven/bin/mvn test
+  build:
+    commands:
+      - echo Entering the build phase...
+      - docker build -t mynewapp:latest .
+      - &{
+        Start-Job -ScriptBlock {
+          /usr/local/apache-maven/bin/mvn test
+        }
+        Start-Job -ScriptBlock {
+          sonar-scanner
+        }
+        Wait-Job -Job (Get-Job) -Timeout 600
+      }
+  post_build:
+    commands:
+      - echo Entering the post_build phase...
+      - docker tag mynewapp:latest 879381276096.dkr.ecr.us-west-2.amazonaws.com/mynewapp:latest
+      - docker push 879381276096.dkr.ecr.us-west-2.amazonaws.com/mynewapp:latest
+
+artifacts:
+  files:
+    - '**/*'
+  base-directory: target

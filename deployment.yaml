@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mynewapp-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: mynewapp
+  template:
+    metadata:
+      labels:
+        app: mynewapp
+    spec:
+      containers:
+      - name: mynewapp
+        image: 879381276096.dkr.ecr.us-west-2.amazonaws.com/mynewapp:latest
+        imagePullPolicy: Always  # Ensure that the latest image is always pulled
+        ports:
+        - containerPort: 8080

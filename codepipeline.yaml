@@ -1,0 +1,77 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      java: 11
+    commands:
+      - echo Installing Maven...
+      - wget http://mirrors.ibiblio.org/apache/maven/maven-3.6.3/binaries/apache-maven-3.6.3-bin.tar.gz
+      - tar xzvf apache-maven-3.6.3-bin.tar.gz
+      - mv apache-maven-3.6.3 /usr/local/apache-maven
+  pre_build:
+    commands:
+      - echo Entering the pre_build phase...
+      - /usr/local/apache-maven/bin/mvn clean install
+      - /usr/local/apache-maven/bin/mvn test
+  build:
+    commands:
+      - echo Entering the build phase...
+      - docker build -t mynewapp:latest .
+  post_build:
+    commands:
+      - echo Entering the post_build phase...
+      - docker tag mynewapp:latest 879381276096.dkr.ecr.us-west-2.amazonaws.com/mynewapp:latest
+      - docker push 879381276096.dkr.ecr.us-west-2.amazonaws.com/mynewapp:latest
+
+artifacts:
+  files:
+    - '**/*'
+  base-directory: target
+
+stages:
+  - name: Source
+    actions:
+      - name: Source
+        actionTypeId:
+          category: Source
+          owner: AWS
+          provider: CodeCommit
+          version: 1
+        outputArtifacts:
+          - name: source_output
+        configuration:
+          RepositoryName: my-repo
+          BranchName: main
+
+  - name: Build
+    actions:
+      - name: Build
+        actionTypeId:
+          category: Build
+          owner: AWS
+          provider: CodeBuild
+          version: 1
+        inputArtifacts:
+          - name: source_output
+        outputArtifacts:
+          - name: build_output
+
+  - name: Prod
+    actions:
+      - name: ManualApproval
+        actionTypeId:
+          category: Approval
+          owner: AWS
+          provider: Manual
+          version: 1
+        inputArtifacts: []
+        runOrder: 1
+      - name: Deploy
+        actionTypeId:
+          category: Deploy
+          owner: AWS
+          provider: CodeDeploy
+          version: 1
+        inputArtifacts:
+          - name: build_output
