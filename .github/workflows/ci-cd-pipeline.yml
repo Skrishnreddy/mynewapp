@@ -51,17 +51,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      # Log in to AWS ECR (if necessary)
-      - name: AWS ECR login
-        run: |
-          aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin 879381276096.dkr.ecr.us-west-2.amazonaws.com
-
-      # Push Docker image to AWS ECR (if necessary)
-      - name: Push Docker image to AWS ECR
-        run: |
-          docker tag mynewapp:latest 879381276096.dkr.ecr.us-west-2.amazonaws.com/mynewapp:latest
-          docker push 879381276096.dkr.ecr.us-west-2.amazonaws.com/mynewapp:latest
-
       # Set up Kubernetes configuration (if required)
       - name: Set up Kubernetes configuration
         run: |
