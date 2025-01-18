@@ -1,4 +1,4 @@
-name: Java CI/CD with Maven, Docker, and EKS
+name: Java CI/CD with Maven, Docker, and AWS ECR
 
 on:
   push:
@@ -17,11 +17,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      # Set up Java JDK 17
+      # Set up JDK 17
       - name: Set up JDK 17
         uses: actions/setup-java@v2
         with:
-          java-version: '17'  # Specify Java version 11
+          java-version: '17'  # Specify Java version 17
           distribution: 'zulu'  # Use Zulu OpenJDK distribution
           cache: 'maven'  # Enable caching for Maven dependencies
 
@@ -42,49 +42,34 @@ jobs:
       - name: Build Docker image
         run: docker build -t mynewapp .
 
-      # Log in to Amazon ECR
-      - name: Log in to Amazon ECR
-        run: |
-          aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin 879381276096.dkr.ecr.us-west-2.amazonaws.com
-
-      # Tag Docker image
-      - name: Tag Docker image
-        run: |
-          docker tag mynewapp:latest 879381276096.dkr.ecr.us-west-2.amazonaws.com/mynewapp:latest
-
-      # Push Docker image to ECR
-      - name: Push Docker image to ECR
-        run: |
-          docker push 879381276096.dkr.ecr.us-west-2.amazonaws.com/mynewapp:latest
-
   deploy:
     runs-on: ubuntu-latest
-    needs: build
+    needs: build  # This job runs after the 'build' job
+
     steps:
-      # Checkout code
+      # Checkout code again in deploy job
       - name: Checkout code
         uses: actions/checkout@v2
 
-      # Set up AWS CLI
+      # Set up AWS CLI with credentials from GitHub Secrets
       - name: Set up AWS CLI
         uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-west-2
+          aws-region: us-west-2  # Use your AWS region
 
-      # Update kubeconfig for EKS
-      - name: Set up kubeconfig for EKS
+      # Login to AWS ECR
+      - name: Login to AWS ECR
         run: |
-          aws eks --region us-west-2 update-kubeconfig --name my-cluster
+          aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin 879381276096.dkr.ecr.us-west-2.amazonaws.com
 
-      # Deploy to EKS using kubectl
-      - name: Deploy to EKS
+      # Tag Docker image for AWS ECR
+      - name: Tag Docker image for ECR
         run: |
-          kubectl apply -f deployment.yaml
-          kubectl apply -f service.yaml
+          docker tag mynewapp:latest 879381276096.dkr.ecr.us-west-2.amazonaws.com/mynewapp:latest
 
-      # Confirm the deployment
-      - name: Confirm the deployment
-        run: kubectl get pods
-
+      # Push Docker image to AWS ECR
+      - name: Push Docker image to AWS ECR
+        run: |
+          docker push 879381276096.dkr.ecr.us-west-2.amazonaws.com/mynewapp:latest
