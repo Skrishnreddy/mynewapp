@@ -40,7 +40,7 @@ jobs:
 
       # Build Docker image
       - name: Build Docker image
-        run: docker build -t ghcr.io/${{ github.repository }}/mynewapp:latest .
+        run: docker build -t ghcr.io/skrishnreddy/mynewapp:latest .
 
       # Log in to GitHub Container Registry
       - name: Log in to GitHub Container Registry
@@ -52,4 +52,4 @@ jobs:
 
       # Push Docker image to GitHub Container Registry
       - name: Push Docker image
-        run: docker push ghcr.io/${{ github.repository }}/mynewapp:latest
+        run: docker push ghcr.io/skrishnreddy/mynewapp:latest
