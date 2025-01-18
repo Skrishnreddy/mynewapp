@@ -1,4 +1,4 @@
-name: Java CI/CD with Maven, Docker, and AWS EKS
+name: Java CI/CD with Maven, Docker, and EKS
 
 on:
   push:
@@ -13,66 +13,78 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    # Checkout the repository code
-    - name: Checkout code
-      uses: actions/checkout@v2
+      # Checkout code
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-    # Set up Java JDK 11
-    - name: Set up JDK 11
-      uses: actions/setup-java@v2
-      with:
-        java-version: '11'   # Ensure JDK 11 is used for the build
-        distribution: 'zulu'
+      # Set up Java JDK 11
+      - name: Set up JDK 11
+        uses: actions/setup-java@v2
+        with:
+          java-version: '11'  # Specify Java version 11
+          distribution: 'zulu'  # Use Zulu OpenJDK distribution
+          cache: 'maven'  # Enable caching for Maven dependencies
 
-    # Cache Maven dependencies
-    - name: Cache Maven dependencies
-      uses: actions/cache@v2
-      with:
-        path: ~/.m2/repository
-        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-        restore-keys: |
-          ${{ runner.os }}-maven-
+      # Cache Maven dependencies
+      - name: Cache Maven dependencies
+        uses: actions/cache@v2
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
 
-    # Build the project with Maven
-    - name: Build with Maven
-      run: mvn clean install
+      # Build with Maven
+      - name: Build with Maven
+        run: mvn clean install
 
-    # Build Docker image for the app
-    - name: Build Docker image
-      run: docker build -t mynewapp .
+      # Build Docker image
+      - name: Build Docker image
+        run: docker build -t mynewapp .
 
-    # AWS Configuration
-    - name: Configure AWS credentials
-      run: |
-        aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws configure set region us-west-2  # Use your AWS region
+      # Log in to Amazon ECR
+      - name: Log in to Amazon ECR
+        run: |
+          aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin 879381276096.dkr.ecr.us-west-2.amazonaws.com
 
-    # Push the Docker image to AWS ECR
-    - name: Push Docker image to AWS ECR
-      run: |
-        $(aws ecr get-login --no-include-email --region us-west-2)
-        docker tag mynewapp:latest 879381276096.dkr.ecr.us-west-2.amazonaws.com/mynewapp:latest
-        docker push 879381276096.dkr.ecr.us-west-2.amazonaws.com/mynewapp:latest
+      # Tag Docker image
+      - name: Tag Docker image
+        run: |
+          docker tag mynewapp:latest 879381276096.dkr.ecr.us-west-2.amazonaws.com/mynewapp:latest
+
+      # Push Docker image to ECR
+      - name: Push Docker image to ECR
+        run: |
+          docker push 879381276096.dkr.ecr.us-west-2.amazonaws.com/mynewapp:latest
 
   deploy:
     runs-on: ubuntu-latest
     needs: build
     steps:
-    # Checkout the repository code again
-    - name: Checkout code
-      uses: actions/checkout@v2
+      # Checkout code
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-    # AWS Configuration
-    - name: Configure AWS credentials
-      run: |
-        aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws configure set region us-west-2  # Use your AWS region
+      # Set up AWS CLI
+      - name: Set up AWS CLI
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-west-2
 
-    # Deploy the app to AWS EKS
-    - name: Deploy to AWS EKS
-      run: |
-        kubectl apply -f deployment.yaml
-        kubectl apply -f service.yaml
-        kubectl rollout status deployment/mynewapp-deployment
+      # Update kubeconfig for EKS
+      - name: Set up kubeconfig for EKS
+        run: |
+          aws eks --region us-west-2 update-kubeconfig --name my-cluster
+
+      # Deploy to EKS using kubectl
+      - name: Deploy to EKS
+        run: |
+          kubectl apply -f deployment.yaml
+          kubectl apply -f service.yaml
+
+      # Confirm the deployment
+      - name: Confirm the deployment
+        run: kubectl get pods
+
