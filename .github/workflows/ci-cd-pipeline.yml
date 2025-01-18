@@ -1,33 +1,67 @@
-name: Docker Build
+name: CI Workflow
 
 on:
   push:
     branches:
-      - main  # Trigger on push to the main branch
+      - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Check out code
-      uses: actions/checkout@v2
+      # Step 1: Checkout the code from the repository
+      - name: Checkout the code
+        uses: actions/checkout@v2
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v2
+      # Step 2: Set up Java 17 environment
+      - name: Set up Java
+        uses: actions/setup-java@v2
+        with:
+          java-version: '17'
 
-    - name: Cache Docker layers
-      uses: actions/cache@v2
-      with:
-        path: /tmp/.buildx-cache
-        key: ${{ runner.os }}-buildx-${{ github.sha }}
-        restore-keys: |
-          ${{ runner.os }}-buildx-
+      # Step 3: Cache Maven dependencies to speed up the build process
+      - name: Cache Maven dependencies
+        uses: actions/cache@v2
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
 
-    - name: Build Docker image
-      run: |
-        docker build -t mynewapp .
-    
-    - name: Verify Docker image build
-      run: |
-        docker images
+      # Step 4: Build the application using Maven
+      - name: Build the application with Maven
+        run: mvn clean install
+
+      # Step 5: Set up Docker Buildx
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      # Step 6: Cache Docker layers to speed up subsequent builds
+      - name: Cache Docker layers
+        uses: actions/cache@v2
+        with:
+          path: ~/.docker
+          key: ${{ runner.os }}-docker-${{ hashFiles('**/Dockerfile') }}
+          restore-keys: |
+            ${{ runner.os }}-docker-
+
+      # Step 7: Build Docker image from Dockerfile
+      - name: Build Docker image
+        run: |
+          docker build -t mynewapp .
+
+      # Optional Step 8: Push the Docker image to a registry (if needed)
+      # Uncomment and configure the following section if you want to push to Docker Hub or another registry
+      # - name: Log in to Docker Hub
+      #   uses: docker/login-action@v2
+      #   with:
+      #     username: ${{ secrets.DOCKER_USERNAME }}
+      #     password: ${{ secrets.DOCKER_PASSWORD }}
+
+      # - name: Push Docker image to Docker Hub
+      #   run: |
+      #     docker push mynewapp
